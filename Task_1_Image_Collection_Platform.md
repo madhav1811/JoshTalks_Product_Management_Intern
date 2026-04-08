@@ -1,94 +1,145 @@
 # Task 1: Design a Platform to Collect Images + Descriptions from All Villages of India
 
-## 1. Problem Statement & Goals
+## 1. Problem & Goals
 
-AI vision-language models (e.g., CLIP, GPT-4V) are currently trained on global datasets that often lack representation from rural India. They fail to recognize local contexts such as a "handpump in rural Rohtak," a "Durga Puja pandal," or specific "Rath Yatra processions." This creates a cultural and geographic gap in AI's understanding of India's 600,000+ villages.
+### The Problem
 
-### Goals
+Current AI vision-language models (e.g., CLIP, GPT-4V) suffer from "geographic and cultural bias." While they excel at identifying the Eiffel Tower or Western scenes, they fail to recognize rural Indian contexts such as a "handpump in Rohtak," a "Durga Puja pandal," or local village architecture. This lack of data prevents AI from being truly inclusive and functional for the next billion users in India.
 
-- Build a scalable, low-friction, and resilient platform to collect **1,000 high-quality image-description pairs per village** across all Indian districts.
-- Ensure the product is inclusive for field agents with low connectivity and varied devices.
-- Provide internal teams with tools to verify and monitor coverage effectively.
+### The Objective
+
+Design a scalable, mobile-first product that enables distributed contributors (field agents, volunteers, NGOs) to capture and describe 1,000 images per village across all 600,000+ Indian villages, ensuring high data integrity and verifiable location accuracy.
 
 ---
 
 ## 2. User Roles and Goals
 
-### Contributors (Field Agents/Volunteers)
+### A. Contributors (The "Ground" Team)
 
-- **Goal**: Capture/upload image + add description + submit.
-- **Constraints**: Low connectivity, varied devices, multilingual input, minimal training.
+- **Who they are**: Field agents, NGO partners, or local village youth with entry-level smartphones.
+- **Goals**:
+  - Capture high-quality images of their local surroundings.
+  - Provide accurate, culturally relevant descriptions in their native language or simple English.
+  - Submit data efficiently, even in areas with poor internet connectivity.
+- **Constraints**:
+  - Low-end devices (limited RAM/Storage).
+  - Intermittent internet (2G/3G speeds common).
+  - Varied literacy and technical proficiency.
 
-### Reviewers/Admins (Internal Teams)
+### B. Admin/Reviewers (The "Internal" Team)
 
-- **Goal**: Verify quality and ensure full district coverage.
-- **Constraint**: High volume of data requiring quick validation.
+- **Who they are**: Data scientists and QA specialists at JoshTalksAI.
+- **Goals**:
+  - Monitor real-time progress across 700+ districts.
+  - Verify image quality (blur, relevance) and description accuracy.
+  - Prevent fraudulent submissions (e.g., urban photos tagged as rural villages).
+- **Constraints**: Managing massive data scale (millions of images).
 
 ---
 
-## 3. Contributor Flow Design
+## 3. Contributor Flow Design (Mobile-First)
 
-### Step-by-Step Experience:
+### Step 1: Onboarding & Location Setup
 
-1.  **Accessing the Product**: A mobile web app (PWA) to ensure low storage usage and easy updates.
-2.  **Location Setup**: Automatic GPS-based village suggestion with manual overrides (State → District → Village).
-3.  **Capture/Upload**: Option to take a real-time photo (preferred for authenticity) or upload from the gallery.
-4.  **Add Description**: A text field with multilingual support and character/word count nudges.
-5.  **Review & Submit**: A final check of the image and caption before sending.
+- **Access**: Progressive Web App (PWA) link.
+  - _Rationale_: No App Store download required; low friction for low-storage devices; easy to update.
+- **Village Selection**: The app uses GPS to suggest the nearest village. Users confirm or select from a pre-loaded offline list of State > District > Village.
 
-### Key Design Principles:
+### Step 2: Content Capture
 
-- **Offline-First**: Save drafts locally using a sync manager for later upload when internet is restored.
-- **Minimalist UI**: Large buttons, clear iconography, and guided steps.
-- **Resilience**: Low-resolution thumbnails for quick previews in low-network areas.
+- **Guided Camera**: A custom camera interface that overlays a "quality guide" (e.g., "Keep it steady," "Good lighting").
+- **Description Input**: A simple text field with voice-to-text support in regional languages.
+- **Validation**: "Submit" is disabled until:
+  - Image is detected (not a black/blurry screen).
+  - Description is at least 8-10 words.
+  - GPS coordinates are verified within the village boundary.
+
+### Step 3: Offline Submission
+
+- **Local Storage**: Submissions are saved to the device's local storage (IndexedDB).
+- **Sync Manager**: A background worker detects when the user reaches 4G/Wi-Fi and uploads the queue automatically.
+- **Progress Tracking**: A simple "Village Score" (e.g., 450/1000) to gamify the experience and motivate the contributor.
 
 ---
 
 ## 4. Admin / Verification View
 
-### Core Features:
+### A. Coverage Dashboard (The "Heatmap")
 
-- **Heatmap Dashboard**: A map-based view showing real-time village-level coverage.
-- **Advanced Filtering**: Search by state, district, date, or contributor type.
-- **Verification Queue**: A grid-based UI showing image-caption pairs for manual "Approve/Reject/Flag" actions.
-- **Quality Indicators**: Automatic flags for blurry images or repetitive descriptions.
+- **Global View**: An interactive map of India, color-coded by "Completion %" (Red < 20%, Green > 90%).
+- **Deep Dive**: Click on a district to see village-level progress and individual contributor performance.
+
+### B. Verification Gallery
+
+- **Bulk Review**: Admins see a grid of image + caption pairs.
+- **Quick Actions**: Keyboard shortcuts (e.g., 'A' for Approve, 'R' for Reject) for high-speed processing.
+- **Flagging**: Automatic AI-first pass flags images that are likely duplicates or stock photos.
 
 ---
 
 ## 5. Edge Scenarios & Solutions
 
-- **Weak/No Internet**: All submissions are cached in a local database (e.g., SQLite/IndexedDB) and uploaded in the background.
-- **Low-Quality Input**: Use simple on-device logic (e.g., brightness check, blur detection) to nudge the user _before_ submission.
-- **Wrong Location**: If GPS data doesn't match the selected village, the app warns the user and requires a reason (e.g., "Capturing the outskirts").
-- **Missing Descriptions**: Implement a minimum word count (e.g., 10 words) and suggest prompts (e.g., "Describe the background").
+| Scenario                 | Product Solution                                                                                                        |
+| :----------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| **No Internet for days** | App caches the entire village list locally; uses persistent local storage for up to 200 drafts.                         |
+| **Low-effort captions**  | Use "Nudge prompts" like: "What color is the handpump?" or "Who is in the photo?" to improve description depth.         |
+| **Location Fraud**       | Mandatory GPS metadata capture. If the GPS is spoofed or far from the village, the submission is automatically flagged. |
+| **Duplicate images**     | On-device hashing to prevent the same user from uploading the same photo multiple times.                                |
 
 ---
 
-## 6. Summary of Approach
+## 6. Prioritization: MVP vs. Future Scope
 
-- **Assumptions**: We assume contributors are motivated but limited by technology and environment.
-- **Key Metrics**:
-  - **Village Coverage %**: Percentage of villages reaching the 1,000-image goal.
-  - **Approval Rate**: Ratio of approved to total submissions (aim for >95%).
-  - **Sync Latency**: Time from capture to upload completion.
-- **Expected Outcomes**: A robust, culturally-aware vision dataset that allows AI models to "see" and understand India authentically.
+### MVP (Phase 1)
+
+- Core capture and description flow.
+- Offline-first storage and sync.
+- Basic GPS validation.
+- Simple Admin dashboard with approval/rejection.
+
+### Future Scope (Phase 2)
+
+- **Gamification**: Leaderboards and milestone rewards for top contributors.
+- **AI Pre-verification**: On-device image quality scoring to reduce manual review load.
+- **Multilingual UI**: Full interface localization in 12+ Indian languages.
+- **Community Review**: Trusted contributors can peer-review others' work for faster scaling.
 
 ---
 
-## Wireframe Logic (Conceptual)
+## 7. Summary & Success Metrics
 
-```mermaid
-graph TD
-    Start[App Launch] --> Loc[Confirm Location]
-    Loc --> Capture[Capture Image]
-    Capture --> Describe[Add Description]
-    Describe --> Submit{Internet?}
-    Submit -- Yes --> Cloud[Upload to Cloud]
-    Submit -- No --> Local[Save to Local Drafts]
-    Local --> Sync[Sync when Online]
-    Cloud --> Admin[Review Queue]
-    Sync --> Admin
-    Admin --> Verify{Quality Check}
-    Verify -- Pass --> Approve[Approved]
-    Verify -- Fail --> Reject[Reject/Nudge]
-```
+### Design Principles
+
+- **Clarity over Polish**: Focus on functional UI that works on low-end screens.
+- **Integrity-First**: Built-in location and quality checks to ensure "Gold Standard" data.
+- **Frictionless**: Minimal steps from "Open App" to "Image Captured."
+
+### Success Metrics
+
+- **Completion Rate**: % of targeted villages reaching 1,000 images.
+- **Data Yield**: Ratio of approved images to total submissions (Target: >92%).
+- **Contributor Lifetime Value**: Average number of villages completed per contributor.
+- **Verification Speed**: Average time taken by an admin to review a submission batch.
+
+---
+
+## Figma Wireframe Logic (Contributor Flow)
+
+### Screen A: Village Dashboard
+
+- **Header**: "Contributing to: Village X, District Y"
+- **Progress Card**: Circular chart showing "450 / 1000 images collected."
+- **Action Button**: Large green FAB (Floating Action Button) with a Camera icon.
+
+### Screen B: Capture & Describe
+
+- **Top 2/3**: Real-time camera preview with a "Level" indicator for steady shots.
+- **Bottom 1/3**:
+  - Multilingual text area: "Describe this scene..."
+  - Submit button with "Offline Sync" indicator.
+
+### Screen C: Admin Dashboard
+
+- **Left Panel**: Filters (State, District, Status).
+- **Center Panel**: Map View with toggle to Gallery View.
+- **Right Panel**: Selection details (Metadata: GPS, Device, Contributor Rating).
