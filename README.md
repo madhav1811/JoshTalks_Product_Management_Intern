@@ -1,27 +1,40 @@
 # JoshTalks Product Management Intern Tasks
 
-This repository contains my solutions for the JoshTalks Product Management Intern application tasks. Each task focuses on a different aspect of building and scaling high-quality AI datasets.
+This repository contains my solutions for the JoshTalks Product Management Intern application tasks. It features a complete **end-to-end MERN stack application** designed with a modern, high-fidelity UI to solve the provided product challenges.
 
-## Project Structure
+## 🚀 Key Features
 
-- **[Task 1: Image Collection Platform](Task_1_Image_Collection_Platform.md)**
-    - **Problem**: Lack of culturally specific vision datasets for rural India.
-    - **Solution**: Designed a mobile-first, offline-ready platform to collect 1,000 image-description pairs per village.
-    - **Key Features**: GPS-based location verification, multilingual support, and a heatmap-based admin dashboard for coverage tracking.
+### 1. Vision Dataset Collection (Task 1)
 
-- **[Task 2: Transcription Quality Control](Task_2_Transcription_Quality_Control.md)**
-    - **Problem**: Low-quality work by transcribers (rushing or minimal editing).
-    - **Solution**: Identified data patterns (Edit Rate, Time Ratio) to flag problematic behavior.
-    - **Key Recommendations**: Implementation of "Gold Standard" traps and a real-time speed/edit interlock system to protect data integrity.
+- **Modern Contributor Portal**: A sleek, mobile-first interface for field agents to capture and describe village-specific imagery.
+- **Intelligent Verification**: GPS-verified submissions with a real-time "Village Goal" progress tracker.
+- **Admin Operations Console**: A high-performance dashboard for verifying submissions, monitoring coverage via spatial heatmaps, and exporting data.
 
-- **[Task 3: Voice AI Evaluation System](Task_3_Voice_AI_Evaluation_System.md)**
-    - **Problem**: Inconsistent human evaluation of Voice AI conversations.
-    - **Solution**: Designed a standardized evaluation platform with clear criteria (Intent, Task Completion, Naturalness, Coherence).
-    - **Key Features**: Interactive transcript player, detailed scoring rubrics, and automated AI assistance for scaling to 1,000+ evaluations.
+### 2. Transcription Quality Analysis (Task 2)
 
-## About Humanness by JoshTalks
-JoshTalksAI (Humanness) is building gold-standard AI datasets across speech, image, and text modalities. These datasets are used to train and fine-tune advanced AI models (ASR, VL systems) with a focus on achieving high word-level accuracy (98–99%) and cultural inclusivity across India.
+- **Data-Driven Quality Control**: Integrated logic to identify low-quality transcribers based on behavior patterns (Edit Rate, CPS, Time Ratio).
+- **Automated QA System**: Real-time monitoring and fallback mechanisms to protect dataset integrity.
+
+### 3. Voice AI Evaluation Framework (Task 3)
+
+- **Standardized Scoring**: A robust system for evaluating AI-human conversations across four key dimensions (Intent, Task Completion, Naturalness, Dialogue Flow).
+- **Evaluator Interface**: A professional workspace for human evaluators to review audio and transcripts with precise scoring rubrics.
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS, Framer Motion, Lucide Icons, Axios.
+- **Backend**: Node.js, Express, MongoDB (with in-memory fallback), Morgan, Dotenv.
+- **Design System**: A custom-built, modern Rose & Slate palette with a focus on high readability and premium aesthetics.
+
+## 📁 Project Structure
+
+- **`humanness-prototype/`**: The complete MERN application.
+  - **`frontend/`**: The React-based user portal.
+  - **`backend/`**: The Express API and database models.
+- **`Task_1_Image_Collection_Platform.md`**: Detailed PRD and design strategy.
+- **`Task_2_Transcription_Quality_Control.md`**: Analysis of transcriber quality patterns.
+- **`Task_3_Voice_AI_Evaluation_System.md`**: Voice AI evaluation system design.
 
 ---
 
-*Prepared as part of the Product Management Intern application for JoshTalks.*
+_Prepared by a Product Management Intern candidate for JoshTalks._
