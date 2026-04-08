@@ -32,7 +32,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 // --- Types ---
-type View = 'SPLASH' | 'CONTRIBUTOR_DASHBOARD' | 'LOCATION_SELECT' | 'CAPTURE' | 'ADMIN_DASHBOARD' | 'SUBMISSION_SUCCESS'
+type View = 'SPLASH' | 'CONTRIBUTOR_DASHBOARD' | 'LOCATION_SELECT' | 'CAPTURE' | 'ADMIN_DASHBOARD' | 'SUBMISSION_SUCCESS' | 'EVALUATOR_PORTAL' | 'EVALUATION_SCREEN'
 
 interface Submission {
   _id: string;
@@ -53,6 +53,20 @@ interface TranscriberAnalytic {
   avg_cps: string;
   flags: string[];
   status: 'FLAGGED' | 'HEALTHY';
+}
+
+interface VoiceEvaluation {
+  _id: string;
+  call_id: string;
+  evaluator_id: string;
+  intent_understanding: number;
+  task_completion: number;
+  naturalness: number;
+  dialogue_flow: number;
+  comments: string;
+  critical_failure: boolean;
+  failure_type: string;
+  timestamp: string;
 }
 
 const API_URL = 'http://localhost:5000/api'
@@ -136,8 +150,10 @@ export default function App() {
   const [currentView, setCurrentView] = useState<View>('SPLASH')
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [transcriberAnalytics, setTranscriberAnalytics] = useState<TranscriberAnalytic[]>([])
-  const [adminTab, setAdminTab] = useState<'SUBMISSIONS' | 'TRANSCRIBERS'>('SUBMISSIONS')
+  const [voiceEvaluations, setVoiceEvaluations] = useState<VoiceEvaluation[]>([])
+  const [adminTab, setAdminTab] = useState<'SUBMISSIONS' | 'TRANSCRIBERS' | 'VOICE_AI'>('SUBMISSIONS')
   const [selectedLocation, setSelectedLocation] = useState({ state: 'Haryana', district: 'Rohtak', village: 'Rohtak Village 1' })
+  const [selectedCallId, setSelectedCallId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const fetchSubmissions = async () => {
@@ -164,6 +180,18 @@ export default function App() {
     }
   }
 
+  const fetchVoiceEvaluations = async () => {
+    try {
+      setLoading(true)
+      const res = await axios.get(`${API_URL}/evaluations`)
+      setVoiceEvaluations(res.data)
+    } catch (err) {
+      console.error('Error fetching evaluations:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (currentView === 'CONTRIBUTOR_DASHBOARD') {
       fetchSubmissions()
@@ -171,6 +199,10 @@ export default function App() {
     if (currentView === 'ADMIN_DASHBOARD') {
       fetchSubmissions()
       fetchTranscriberAnalytics()
+      fetchVoiceEvaluations()
+    }
+    if (currentView === 'EVALUATOR_PORTAL') {
+      fetchVoiceEvaluations()
     }
   }, [currentView])
 
@@ -225,13 +257,21 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md mx-auto pt-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-2xl mx-auto pt-8">
                 <Button 
                   onClick={() => setCurrentView('CONTRIBUTOR_DASHBOARD')} 
                   icon={User}
                   className="h-16 text-lg"
                 >
-                  Contributor Portal
+                  Contributor
+                </Button>
+                <Button 
+                  onClick={() => setCurrentView('EVALUATOR_PORTAL')} 
+                  variant="outline" 
+                  icon={Database}
+                  className="h-16 text-lg"
+                >
+                  Evaluator
                 </Button>
                 <Button 
                   onClick={() => setCurrentView('ADMIN_DASHBOARD')} 
@@ -239,7 +279,7 @@ export default function App() {
                   icon={ShieldCheck}
                   className="h-16 text-lg"
                 >
-                  Admin Access
+                  Admin
                 </Button>
               </div>
 
@@ -426,6 +466,96 @@ export default function App() {
           </div>
         )
 
+      case 'EVALUATOR_PORTAL':
+        return (
+          <div className="max-w-4xl mx-auto w-full space-y-8 pb-20">
+            <header className="flex justify-between items-center">
+              <div>
+                <h2 className="text-4xl font-black tracking-tight text-surface-900 dark:text-white leading-[0.9]">Evaluator Portal</h2>
+                <p className="text-surface-500 font-medium mt-2">Task: Standardized Voice AI Quality Review</p>
+              </div>
+              <Button variant="secondary" onClick={() => setCurrentView('SPLASH')} icon={X}>Exit Portal</Button>
+            </header>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="md:col-span-2 space-y-6">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-black text-xl tracking-tight">Assigned Conversations</h4>
+                  <Badge variant="info">Batch #42</Badge>
+                </div>
+                <div className="space-y-3">
+                  {['CALL-2001', 'CALL-2002', 'CALL-2003'].map(callId => (
+                    <div key={callId} className="flex items-center justify-between p-4 bg-surface-50 dark:bg-surface-800 rounded-2xl border border-surface-100 dark:border-surface-700">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-brand-50 dark:bg-brand-900/20 text-brand-500 rounded-xl">
+                          <RefreshCw size={20} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-surface-900 dark:text-white">{callId}</p>
+                          <p className="text-xs text-surface-500">Duration: 1m 24s • Topic: Hotel Booking</p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="primary" 
+                        className="px-4 py-2 text-xs" 
+                        onClick={() => { setSelectedCallId(callId); setCurrentView('EVALUATION_SCREEN'); }}
+                      >
+                        Start Review
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+              
+              <div className="space-y-6">
+                <Card className="bg-brand-500 text-white border-none shadow-glow">
+                  <p className="text-brand-100 text-[10px] font-black uppercase tracking-widest">Reviews Today</p>
+                  <h4 className="text-5xl font-black mt-2">12 <span className="text-lg opacity-60">/ 20</span></h4>
+                  <p className="mt-4 text-xs font-bold text-brand-100">8 more to hit your goal</p>
+                </Card>
+                <Card className="space-y-4">
+                  <h5 className="font-black text-xs uppercase tracking-widest text-surface-400">Review Rubric</h5>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5" />
+                      <p className="text-xs font-medium text-surface-600 dark:text-surface-400">Rate intent understanding based on user goal completion.</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5" />
+                      <p className="text-xs font-medium text-surface-600 dark:text-surface-400">Naturalness includes tone, pace, and prosody.</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'EVALUATION_SCREEN':
+        return (
+          <EvaluationInterface 
+            callId={selectedCallId || 'CALL-UNKNOWN'} 
+            onBack={() => setCurrentView('EVALUATOR_PORTAL')} 
+            onSubmit={async (data) => {
+              try {
+                setLoading(true);
+                await axios.post(`${API_URL}/evaluations`, {
+                  ...data,
+                  call_id: selectedCallId,
+                  evaluator_id: 'EVAL-CURRENT-USER'
+                });
+                setCurrentView('EVALUATOR_PORTAL');
+              } catch (err) {
+                console.error('Error submitting evaluation:', err);
+                alert('Submission failed.');
+              } finally {
+                setLoading(false);
+              }
+            }}
+            loading={loading}
+          />
+        )
+
       case 'ADMIN_DASHBOARD':
         return (
           <div className="w-full max-w-7xl mx-auto space-y-8 pb-20">
@@ -458,6 +588,15 @@ export default function App() {
                 )}
               >
                 Transcriber Quality (Task 2)
+              </button>
+              <button 
+                onClick={() => setAdminTab('VOICE_AI')}
+                className={cn(
+                  "px-6 py-2 rounded-xl font-black text-sm transition-all",
+                  adminTab === 'VOICE_AI' ? "bg-brand-500 text-white shadow-glow" : "text-surface-400 hover:text-surface-600"
+                )}
+              >
+                Voice AI Analytics (Task 3)
               </button>
             </div>
 
@@ -549,7 +688,7 @@ export default function App() {
                   </div>
                 </div>
               </>
-            ) : (
+            ) : adminTab === 'TRANSCRIBERS' ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Card className="bg-red-500 text-white border-none shadow-glow">
@@ -600,7 +739,15 @@ export default function App() {
                             </div>
                           </td>
                           <td className="p-4">
-                            <button className="text-[10px] font-black uppercase text-brand-500 hover:underline">Block User</button>
+                            <button 
+                              onClick={() => {
+                                alert(`User ${user.user_id} has been blocked and flagged for review.`);
+                                // In a real app, this would call an API
+                              }}
+                              className="text-[10px] font-black uppercase text-brand-500 hover:underline"
+                            >
+                              Block User
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -608,6 +755,81 @@ export default function App() {
                   </table>
                   {transcriberAnalytics.length === 0 && <p className="text-center py-12 text-surface-400 italic">No transcriber data found.</p>}
                 </Card>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card className="bg-surface-900 text-white border-none shadow-2xl">
+                    <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Avg. Intent Score</p>
+                    <h4 className="text-5xl font-black mt-2">
+                      {(voiceEvaluations.reduce((acc, curr) => acc + curr.intent_understanding, 0) / (voiceEvaluations.length || 1)).toFixed(1)}
+                    </h4>
+                    <p className="mt-4 text-xs font-bold text-blue-400">Target: 4.5+</p>
+                  </Card>
+                  <Card className="bg-brand-500 text-white border-none shadow-glow">
+                    <p className="text-brand-100 text-[10px] font-black uppercase tracking-widest">Task Success Rate</p>
+                    <h4 className="text-5xl font-black mt-2">
+                      {((voiceEvaluations.filter(e => e.task_completion >= 4).length / (voiceEvaluations.length || 1)) * 100).toFixed(0)}%
+                    </h4>
+                    <p className="mt-4 text-xs font-bold text-brand-100">Across {voiceEvaluations.length} calls</p>
+                  </Card>
+                  <Card>
+                    <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Critical Failures</p>
+                    <h4 className="text-5xl font-black mt-2 text-red-500">
+                      {voiceEvaluations.filter(e => e.critical_failure).length}
+                    </h4>
+                    <p className="mt-4 text-xs font-bold text-surface-400">Needs Root Cause Analysis</p>
+                  </Card>
+                  <Card>
+                    <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Naturalness</p>
+                    <h4 className="text-5xl font-black mt-2">
+                      {(voiceEvaluations.reduce((acc, curr) => acc + curr.naturalness, 0) / (voiceEvaluations.length || 1)).toFixed(1)}
+                    </h4>
+                    <p className="mt-4 text-xs font-bold text-green-500">Industry Standard: 4.2</p>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                  <h4 className="font-black text-xl tracking-tight">Recent Evaluations</h4>
+                  {voiceEvaluations.map(evalItem => (
+                    <Card key={evalItem._id} className="space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex gap-3 items-center">
+                          <Badge variant="info">{evalItem.call_id}</Badge>
+                          <p className="text-xs font-bold text-surface-400">Evaluated by {evalItem.evaluator_id}</p>
+                        </div>
+                        {evalItem.critical_failure && <Badge variant="danger">CRITICAL: {evalItem.failure_type}</Badge>}
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-surface-400 uppercase tracking-tighter">Intent</p>
+                          <div className="flex text-brand-500">
+                            {[...Array(5)].map((_, i) => <Zap key={i} size={12} className={i < evalItem.intent_understanding ? "fill-current" : "opacity-20"} />)}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-surface-400 uppercase tracking-tighter">Task</p>
+                          <div className="flex text-brand-500">
+                            {[...Array(5)].map((_, i) => <CheckCircle key={i} size={12} className={i < evalItem.task_completion ? "fill-current" : "opacity-20"} />)}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-surface-400 uppercase tracking-tighter">Natural</p>
+                          <div className="flex text-brand-500">
+                            {[...Array(5)].map((_, i) => <User key={i} size={12} className={i < evalItem.naturalness ? "fill-current" : "opacity-20"} />)}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-surface-400 uppercase tracking-tighter">Flow</p>
+                          <div className="flex text-brand-500">
+                            {[...Array(5)].map((_, i) => <RefreshCw key={i} size={12} className={i < evalItem.dialogue_flow ? "fill-current" : "opacity-20"} />)}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium italic text-surface-600 dark:text-surface-300">"{evalItem.comments}"</p>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -642,6 +864,171 @@ export default function App() {
       </div>
     </div>
   )
+}
+
+function EvaluationInterface({ callId, onBack, onSubmit, loading }: { callId: string, onBack: () => void, onSubmit: (data: any) => void, loading: boolean }) {
+  const [scores, setScores] = useState({
+    intent_understanding: 0,
+    task_completion: 0,
+    naturalness: 0,
+    dialogue_flow: 0
+  });
+  const [comments, setComments] = useState('');
+  const [criticalFailure, setCriticalFailure] = useState(false);
+  const [failureType, setFailureType] = useState('NONE');
+
+  const criteria = [
+    { id: 'intent_understanding', label: 'Intent Understanding', icon: Zap, desc: 'Did AI correctly interpret user goals?' },
+    { id: 'task_completion', label: 'Task Completion', icon: CheckCircle, desc: 'Was the objective successfully achieved?' },
+    { id: 'naturalness', label: 'Naturalness', icon: User, desc: 'Human-like tone, pace, and prosody.' },
+    { id: 'dialogue_flow', label: 'Dialogue Flow', icon: RefreshCw, desc: 'Coherence and smooth turn-taking.' }
+  ];
+
+  return (
+    <div className="max-w-5xl mx-auto w-full space-y-8 pb-20">
+      <header className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack} className="p-2"><X size={24} /></Button>
+          <div>
+            <h2 className="text-3xl font-black tracking-tight">Reviewing {callId}</h2>
+            <p className="text-surface-500 font-medium">Standard Evaluation Rubric v2.1</p>
+          </div>
+        </div>
+        <Badge variant="info">Topic: Hotel Booking</Badge>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="space-y-6">
+            <div className="space-y-4">
+              <h4 className="font-black text-xs uppercase tracking-widest text-surface-400">Audio Recording</h4>
+              <div className="bg-surface-900 rounded-2xl p-6 flex flex-col gap-4">
+                <div className="h-16 flex items-end gap-1 px-4">
+                  {[...Array(40)].map((_, i) => (
+                    <div key={i} className="flex-1 bg-brand-500/40 rounded-full" style={{ height: `${Math.random() * 100}%` }} />
+                  ))}
+                </div>
+                <div className="flex items-center gap-4 text-white">
+                  <button className="p-3 bg-brand-500 rounded-full"><RefreshCw size={20} /></button>
+                  <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-white w-1/3" />
+                  </div>
+                  <span className="text-xs font-mono">00:24 / 01:24</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h4 className="font-black text-xs uppercase tracking-widest text-surface-400">Transcript</h4>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center flex-shrink-0 text-[10px] font-black">USR</div>
+                  <div className="bg-surface-50 dark:bg-surface-800 p-3 rounded-2xl rounded-tl-none border border-surface-100 dark:border-surface-700">
+                    <p className="text-sm font-medium">"I want to book a room for tomorrow night in Delhi."</p>
+                  </div>
+                </div>
+                <div className="flex gap-4 flex-row-reverse">
+                  <div className="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center flex-shrink-0 text-[10px] font-black">AI</div>
+                  <div className="bg-brand-500 text-white p-3 rounded-2xl rounded-tr-none shadow-glow">
+                    <p className="text-sm font-medium">"Sure! I can help with that. Which area in Delhi do you prefer?"</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-8 h-8 rounded-full bg-surface-100 flex items-center justify-center flex-shrink-0 text-[10px] font-black">USR</div>
+                  <div className="bg-surface-50 dark:bg-surface-800 p-3 rounded-2xl rounded-tl-none border border-surface-100 dark:border-surface-700">
+                    <p className="text-sm font-medium">"Near the airport would be great. Budget is around 5000."</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card className="space-y-6 shadow-2xl border-brand-500/20">
+            <h4 className="font-black text-xl tracking-tight">Quality Scores</h4>
+            <div className="space-y-6">
+              {criteria.map(item => (
+                <div key={item.id} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <item.icon size={16} className="text-brand-500" />
+                      <p className="text-sm font-black">{item.label}</p>
+                    </div>
+                    <span className="text-xs font-black text-brand-500">{(scores as any)[item.id] || 0}/5</span>
+                  </div>
+                  <div className="flex justify-between gap-1">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button
+                        key={star}
+                        onClick={() => setScores({ ...scores, [item.id]: star })}
+                        className={cn(
+                          "flex-1 h-10 rounded-lg border-2 transition-all flex items-center justify-center font-black text-xs",
+                          (scores as any)[item.id] >= star 
+                            ? "bg-brand-500 border-brand-500 text-white shadow-glow" 
+                            : "border-surface-100 dark:border-surface-700 text-surface-300 hover:border-brand-200"
+                        )}
+                      >
+                        {star}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-surface-400 font-medium">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-surface-100 dark:border-surface-700">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-black">Critical Failure?</p>
+                <button 
+                  onClick={() => setCriticalFailure(!criticalFailure)}
+                  className={cn(
+                    "w-12 h-6 rounded-full transition-colors relative",
+                    criticalFailure ? "bg-red-500" : "bg-surface-200 dark:bg-surface-700"
+                  )}
+                >
+                  <div className={cn("w-4 h-4 bg-white rounded-full absolute top-1 transition-all", criticalFailure ? "left-7" : "left-1")} />
+                </button>
+              </div>
+              
+              {criticalFailure && (
+                <select 
+                  className="w-full h-12 px-4 rounded-xl border-2 border-red-100 bg-red-50 dark:bg-red-900/20 dark:border-red-900/40 text-red-600 font-bold text-xs"
+                  value={failureType}
+                  onChange={e => setFailureType(e.target.value)}
+                >
+                  <option value="NONE">Select Failure Type</option>
+                  <option value="HALLUCINATION">Hallucination</option>
+                  <option value="OFFENSIVE">Offensive Content</option>
+                  <option value="DEAD_AIR">Dead Air / Loop</option>
+                </select>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-surface-400 uppercase tracking-widest">Comments</label>
+                <textarea 
+                  className="w-full p-4 rounded-2xl border-2 border-surface-100 bg-surface-50 dark:bg-surface-800 dark:border-surface-700 font-medium min-h-[100px] resize-none outline-none focus:border-brand-500 text-sm"
+                  placeholder="Optional qualitative feedback..."
+                  value={comments}
+                  onChange={e => setComments(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <Button 
+              className="w-full h-16 rounded-2xl shadow-glow" 
+              disabled={Object.values(scores).some(s => s === 0) || loading}
+              onClick={() => onSubmit({ ...scores, comments, critical_failure: criticalFailure, failure_type: failureType })}
+              loading={loading}
+            >
+              Submit Evaluation
+            </Button>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function CaptureView({ onBack, onAdd, loading }: { onBack: () => void, onAdd: (desc: string, url: string) => void, loading: boolean }) {
