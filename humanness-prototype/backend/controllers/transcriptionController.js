@@ -41,6 +41,65 @@ export const getAllTranscriptions = async (req, res) => {
   }
 };
 
+export const getTranscriberAnalytics = async (req, res) => {
+  try {
+    let data = [];
+    if (isDBConnected()) {
+      data = await Transcription.find();
+    } else {
+      data = mockTranscriptions;
+    }
+
+    // Group by user_id
+    const userGroups = data.reduce((acc, curr) => {
+      if (!acc[curr.user_id]) {
+        acc[curr.user_id] = {
+          user_id: curr.user_id,
+          total_tasks: 0,
+          edited_count: 0,
+          total_duration: 0,
+          total_time_taken: 0,
+          total_cps: 0,
+          tasks: []
+        };
+      }
+      const group = acc[curr.user_id];
+      group.total_tasks += 1;
+      if (curr.is_edited) group.edited_count += 1;
+      group.total_duration += curr.duration;
+      group.total_time_taken += curr.time_taken_by_user;
+      group.total_cps += curr.segment_character_per_second || 0;
+      group.tasks.push(curr);
+      return acc;
+    }, {});
+
+    const analytics = Object.values(userGroups).map(u => {
+      const edit_rate = (u.edited_count / u.total_tasks) * 100;
+      const time_ratio = u.total_time_taken / u.total_duration;
+      const avg_cps = u.total_cps / u.total_tasks;
+      
+      let flags = [];
+      if (edit_rate < 15) flags.push('Low Edit Rate');
+      if (time_ratio < 0.7) flags.push('Rushing');
+      if (avg_cps > 15) flags.push('High CPS');
+
+      return {
+        user_id: u.user_id,
+        total_tasks: u.total_tasks,
+        edit_rate: edit_rate.toFixed(2),
+        time_ratio: time_ratio.toFixed(2),
+        avg_cps: avg_cps.toFixed(2),
+        flags,
+        status: flags.length > 0 ? 'FLAGGED' : 'HEALTHY'
+      };
+    });
+
+    res.status(200).json(analytics);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching analytics', error: error.message });
+  }
+};
+
 export const updateTranscriptionStatus = async (req, res) => {
   try {
     const { status } = req.body;

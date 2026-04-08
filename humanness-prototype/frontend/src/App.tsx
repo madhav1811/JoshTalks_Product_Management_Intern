@@ -45,6 +45,16 @@ interface Submission {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
+interface TranscriberAnalytic {
+  user_id: string;
+  total_tasks: number;
+  edit_rate: string;
+  time_ratio: string;
+  avg_cps: string;
+  flags: string[];
+  status: 'FLAGGED' | 'HEALTHY';
+}
+
 const API_URL = 'http://localhost:5000/api'
 
 // --- Mock Data ---
@@ -125,6 +135,8 @@ const Badge = ({ children, variant = 'default' }: { children: React.ReactNode, v
 export default function App() {
   const [currentView, setCurrentView] = useState<View>('SPLASH')
   const [submissions, setSubmissions] = useState<Submission[]>([])
+  const [transcriberAnalytics, setTranscriberAnalytics] = useState<TranscriberAnalytic[]>([])
+  const [adminTab, setAdminTab] = useState<'SUBMISSIONS' | 'TRANSCRIBERS'>('SUBMISSIONS')
   const [selectedLocation, setSelectedLocation] = useState({ state: 'Haryana', district: 'Rohtak', village: 'Rohtak Village 1' })
   const [loading, setLoading] = useState(false)
 
@@ -140,9 +152,25 @@ export default function App() {
     }
   }
 
+  const fetchTranscriberAnalytics = async () => {
+    try {
+      setLoading(true)
+      const res = await axios.get(`${API_URL}/transcriptions/analytics`)
+      setTranscriberAnalytics(res.data)
+    } catch (err) {
+      console.error('Error fetching analytics:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    if (currentView === 'CONTRIBUTOR_DASHBOARD' || currentView === 'ADMIN_DASHBOARD') {
+    if (currentView === 'CONTRIBUTOR_DASHBOARD') {
       fetchSubmissions()
+    }
+    if (currentView === 'ADMIN_DASHBOARD') {
+      fetchSubmissions()
+      fetchTranscriberAnalytics()
     }
   }, [currentView])
 
@@ -407,123 +435,181 @@ export default function App() {
                 <p className="text-surface-500 font-medium">Quality Assurance & Coverage Monitoring</p>
               </div>
               <div className="flex gap-3 w-full md:w-auto">
-                <Button variant="secondary" onClick={fetchSubmissions} icon={RefreshCw} loading={loading}>Refresh</Button>
+                <Button variant="secondary" onClick={() => { fetchSubmissions(); fetchTranscriberAnalytics(); }} icon={RefreshCw} loading={loading}>Refresh</Button>
                 <Button variant="danger" onClick={() => setCurrentView('SPLASH')} icon={X}>Exit Console</Button>
               </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="bg-surface-900 text-white border-none shadow-2xl">
-                <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Active Requests</p>
-                <h4 className="text-5xl font-black mt-2">{submissions.filter(s => s.status === 'PENDING').length}</h4>
-                <div className="mt-4 flex items-center gap-2 text-blue-400">
-                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                  <p className="text-xs font-bold">Needs verification</p>
-                </div>
-              </Card>
-              <Card className="bg-brand-500 text-white border-none shadow-glow">
-                <p className="text-brand-100 text-[10px] font-black uppercase tracking-widest">Total Dataset</p>
-                <h4 className="text-5xl font-black mt-2">{submissions.length}</h4>
-                <p className="mt-4 text-xs font-bold text-brand-100">+12% from yesterday</p>
-              </Card>
-              <Card className="bg-surface-50 dark:bg-surface-800/50">
-                <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Villages Covered</p>
-                <h4 className="text-5xl font-black mt-2">45K</h4>
-                <p className="mt-4 text-xs font-bold text-green-500">Target: 600K</p>
-              </Card>
-              <Card className="bg-surface-50 dark:bg-surface-800/50">
-                <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Quality Score</p>
-                <h4 className="text-5xl font-black mt-2">98.4%</h4>
-                <p className="mt-4 text-xs font-bold text-brand-500">Word Error Rate: 1.6%</p>
-              </Card>
+            <div className="flex gap-4 border-b border-surface-100 dark:border-surface-800 pb-4">
+              <button 
+                onClick={() => setAdminTab('SUBMISSIONS')}
+                className={cn(
+                  "px-6 py-2 rounded-xl font-black text-sm transition-all",
+                  adminTab === 'SUBMISSIONS' ? "bg-brand-500 text-white shadow-glow" : "text-surface-400 hover:text-surface-600"
+                )}
+              >
+                Vision Submissions (Task 1)
+              </button>
+              <button 
+                onClick={() => setAdminTab('TRANSCRIBERS')}
+                className={cn(
+                  "px-6 py-2 rounded-xl font-black text-sm transition-all",
+                  adminTab === 'TRANSCRIBERS' ? "bg-brand-500 text-white shadow-glow" : "text-surface-400 hover:text-surface-600"
+                )}
+              >
+                Transcriber Quality (Task 2)
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-black text-xl tracking-tight">Verification Queue</h4>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1 bg-white dark:bg-surface-800 border rounded-lg text-xs font-bold shadow-soft">All</button>
-                    <button className="px-3 py-1 bg-surface-100 dark:bg-surface-700 rounded-lg text-xs font-bold">Urgent</button>
-                  </div>
+            {adminTab === 'SUBMISSIONS' ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card className="bg-surface-900 text-white border-none shadow-2xl">
+                    <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Active Requests</p>
+                    <h4 className="text-5xl font-black mt-2">{submissions.filter(s => s.status === 'PENDING').length}</h4>
+                    <div className="mt-4 flex items-center gap-2 text-blue-400">
+                      <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                      <p className="text-xs font-bold">Needs verification</p>
+                    </div>
+                  </Card>
+                  <Card className="bg-brand-500 text-white border-none shadow-glow">
+                    <p className="text-brand-100 text-[10px] font-black uppercase tracking-widest">Total Dataset</p>
+                    <h4 className="text-5xl font-black mt-2">{submissions.length}</h4>
+                    <p className="mt-4 text-xs font-bold text-brand-100">+12% from yesterday</p>
+                  </Card>
+                  <Card className="bg-surface-50 dark:bg-surface-800/50">
+                    <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Villages Covered</p>
+                    <h4 className="text-5xl font-black mt-2">45K</h4>
+                    <p className="mt-4 text-xs font-bold text-green-500">Target: 600K</p>
+                  </Card>
+                  <Card className="bg-surface-50 dark:bg-surface-800/50">
+                    <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Quality Score</p>
+                    <h4 className="text-5xl font-black mt-2">98.4%</h4>
+                    <p className="mt-4 text-xs font-bold text-brand-500">Word Error Rate: 1.6%</p>
+                  </Card>
                 </div>
-                
-                {submissions.filter(s => s.status === 'PENDING').length === 0 && (
-                  <div className="text-center py-24 bg-surface-50 dark:bg-surface-800/50 rounded-3xl border-2 border-dashed border-surface-200 dark:border-surface-700">
-                    <ShieldCheck size={64} className="mx-auto text-surface-200 mb-4" />
-                    <p className="text-surface-500 font-black text-xl">Queue Clear!</p>
-                    <p className="text-surface-400 font-medium">All submissions have been verified.</p>
-                  </div>
-                )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {submissions.filter(s => s.status === 'PENDING').map(sub => (
-                    <Card key={sub._id} className="p-0 overflow-hidden group flex flex-col h-full" hover>
-                      <div className="relative aspect-video">
-                        <img src={sub.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute top-3 left-3 flex gap-2">
-                          <Badge variant="info">{sub.state}</Badge>
-                        </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-black text-xl tracking-tight">Verification Queue</h4>
+                    </div>
+                    
+                    {submissions.filter(s => s.status === 'PENDING').length === 0 && (
+                      <div className="text-center py-24 bg-surface-50 dark:bg-surface-800/50 rounded-3xl border-2 border-dashed border-surface-200 dark:border-surface-700">
+                        <ShieldCheck size={64} className="mx-auto text-surface-200 mb-4" />
+                        <p className="text-surface-500 font-black text-xl">Queue Clear!</p>
+                        <p className="text-surface-400 font-medium">All submissions have been verified.</p>
                       </div>
-                      <div className="p-5 flex-1 flex flex-col gap-4">
-                        <div className="space-y-1">
-                          <p className="text-xs font-black text-brand-500 uppercase tracking-widest">{sub.village}</p>
-                          <p className="text-surface-900 dark:text-white font-bold leading-snug line-clamp-2">{sub.description}</p>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {submissions.filter(s => s.status === 'PENDING').map(sub => (
+                        <Card key={sub._id} className="p-0 overflow-hidden group flex flex-col h-full" hover>
+                          <div className="relative aspect-video">
+                            <img src={sub.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute top-3 left-3 flex gap-2">
+                              <Badge variant="info">{sub.state}</Badge>
+                            </div>
+                          </div>
+                          <div className="p-5 flex-1 flex flex-col gap-4">
+                            <div className="space-y-1">
+                              <p className="text-xs font-black text-brand-500 uppercase tracking-widest">{sub.village}</p>
+                              <p className="text-surface-900 dark:text-white font-bold leading-snug line-clamp-2">{sub.description}</p>
+                            </div>
+                            <div className="mt-auto pt-4 flex gap-2 border-t border-surface-50 dark:border-surface-700">
+                              <button onClick={() => updateStatus(sub._id, 'APPROVED')} className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all">APPROVE</button>
+                              <button onClick={() => updateStatus(sub._id, 'REJECTED')} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all">REJECT</button>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <h4 className="font-black text-xl tracking-tight text-surface-900 dark:text-white">Coverage Map</h4>
+                    <Card className="p-0 overflow-hidden h-[400px] flex flex-col bg-surface-900 border-none relative">
+                      <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+                      <div className="p-4 border-b border-white/5 flex justify-between items-center relative z-10">
+                        <div className="flex gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                          <div className="w-2 h-2 rounded-full bg-red-500" />
                         </div>
-                        <div className="mt-auto pt-4 flex gap-2 border-t border-surface-50 dark:border-surface-700">
-                          <button onClick={() => updateStatus(sub._id, 'APPROVED')} className="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all">APPROVE</button>
-                          <button onClick={() => updateStatus(sub._id, 'REJECTED')} className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all">REJECT</button>
-                        </div>
+                        <Badge variant="info">Live View</Badge>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative z-10">
+                        <Globe size={80} className="text-brand-500 mb-6 animate-pulse" />
+                        <p className="text-white font-black text-lg">Interactive Spatial Data</p>
+                        <p className="text-surface-400 text-sm mt-2">Visualizing 1,000 images per village density mapping</p>
                       </div>
                     </Card>
-                  ))}
+                  </div>
                 </div>
-              </div>
-
+              </>
+            ) : (
               <div className="space-y-6">
-                <h4 className="font-black text-xl tracking-tight text-surface-900 dark:text-white">Coverage Map</h4>
-                <Card className="p-0 overflow-hidden h-[400px] flex flex-col bg-surface-900 border-none relative">
-                  <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-                  <div className="p-4 border-b border-white/5 flex justify-between items-center relative z-10">
-                    <div className="flex gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
-                      <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                      <div className="w-2 h-2 rounded-full bg-red-500" />
-                    </div>
-                    <Badge variant="info">Live View</Badge>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative z-10">
-                    <Globe size={80} className="text-brand-500 mb-6 animate-pulse" />
-                    <p className="text-white font-black text-lg">Interactive Spatial Data</p>
-                    <p className="text-surface-400 text-sm mt-2">Visualizing 1,000 images per village density mapping</p>
-                  </div>
-                  <div className="p-4 bg-white/5 relative z-10">
-                    <div className="flex justify-between text-[10px] font-black uppercase text-surface-400 mb-2">
-                      <span>Sync Progress</span>
-                      <span>72%</span>
-                    </div>
-                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-brand-500 h-full w-[72%]" />
-                    </div>
-                  </div>
-                </Card>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="bg-red-500 text-white border-none shadow-glow">
+                    <p className="text-red-100 text-[10px] font-black uppercase tracking-widest">Flagged Transcribers</p>
+                    <h4 className="text-5xl font-black mt-2">{transcriberAnalytics.filter(t => t.status === 'FLAGGED').length}</h4>
+                    <p className="mt-4 text-xs font-bold">Needs immediate audit</p>
+                  </Card>
+                  <Card>
+                    <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Avg. Edit Rate</p>
+                    <h4 className="text-5xl font-black mt-2">
+                      {(transcriberAnalytics.reduce((acc, curr) => acc + parseFloat(curr.edit_rate), 0) / (transcriberAnalytics.length || 1)).toFixed(1)}%
+                    </h4>
+                    <p className="mt-4 text-xs font-bold text-surface-400">Target: &gt;15%</p>
+                  </Card>
+                  <Card>
+                    <p className="text-surface-400 text-[10px] font-black uppercase tracking-widest">Avg. Time Ratio</p>
+                    <h4 className="text-5xl font-black mt-2">
+                      {(transcriberAnalytics.reduce((acc, curr) => acc + parseFloat(curr.time_ratio), 0) / (transcriberAnalytics.length || 1)).toFixed(2)}
+                    </h4>
+                    <p className="mt-4 text-xs font-bold text-surface-400">Target: &gt;0.7</p>
+                  </Card>
+                </div>
 
-                <Card className="space-y-4">
-                  <h5 className="font-black text-sm uppercase tracking-widest text-surface-400">Database Tools</h5>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button className="p-4 bg-surface-50 dark:bg-surface-700/50 rounded-2xl flex flex-col items-center gap-2 hover:bg-surface-100 transition-colors">
-                      <Database size={24} className="text-brand-500" />
-                      <span className="text-[10px] font-black uppercase tracking-tighter">Export CSV</span>
-                    </button>
-                    <button className="p-4 bg-surface-50 dark:bg-surface-700/50 rounded-2xl flex flex-col items-center gap-2 hover:bg-surface-100 transition-colors">
-                      <LayoutDashboard size={24} className="text-blue-500" />
-                      <span className="text-[10px] font-black uppercase tracking-tighter">Analytics</span>
-                    </button>
-                  </div>
+                <Card className="p-0 overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-surface-50 dark:bg-surface-800/50 border-b border-surface-100 dark:border-surface-700">
+                      <tr>
+                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-surface-400">User ID</th>
+                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-surface-400">Tasks</th>
+                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-surface-400">Edit Rate</th>
+                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-surface-400">Time Ratio</th>
+                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-surface-400">Avg. CPS</th>
+                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-surface-400">Flags</th>
+                        <th className="p-4 text-[10px] font-black uppercase tracking-widest text-surface-400">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transcriberAnalytics.map(user => (
+                        <tr key={user.user_id} className="border-b border-surface-50 dark:border-surface-800 hover:bg-surface-50/50 dark:hover:bg-surface-800/30 transition-colors">
+                          <td className="p-4 font-bold">{user.user_id}</td>
+                          <td className="p-4 font-medium">{user.total_tasks}</td>
+                          <td className={cn("p-4 font-black", parseFloat(user.edit_rate) < 15 ? "text-red-500" : "text-green-500")}>{user.edit_rate}%</td>
+                          <td className={cn("p-4 font-black", parseFloat(user.time_ratio) < 0.7 ? "text-red-500" : "text-green-500")}>{user.time_ratio}</td>
+                          <td className={cn("p-4 font-black", parseFloat(user.avg_cps) > 15 ? "text-red-500" : "text-surface-900 dark:text-white")}>{user.avg_cps}</td>
+                          <td className="p-4">
+                            <div className="flex flex-wrap gap-1">
+                              {user.flags.length > 0 ? user.flags.map(f => <Badge key={f} variant="danger">{f}</Badge>) : <Badge variant="success">HEALTHY</Badge>}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <button className="text-[10px] font-black uppercase text-brand-500 hover:underline">Block User</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {transcriberAnalytics.length === 0 && <p className="text-center py-12 text-surface-400 italic">No transcriber data found.</p>}
                 </Card>
               </div>
-            </div>
+            )}
           </div>
         )
     }
