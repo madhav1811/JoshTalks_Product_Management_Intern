@@ -38,6 +38,9 @@ export default {
       boxShadow: {
         'soft': '0 10px 25px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
         'glow': '0 0 20px rgba(244, 63, 94, 0.2)',
+      },
+      animation: {
+        'spin-slow': 'spin 8s linear infinite',
       }
     },
   },

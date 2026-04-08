@@ -1,7 +1,44 @@
 import Transcription from '../models/Transcription.js';
 import mongoose from 'mongoose';
 
-let mockTranscriptions = [];
+let mockTranscriptions = [
+  {
+    _id: 'trans1',
+    user_id: 'USER_101',
+    recording_url: 'https://example.com/audio1.mp3',
+    whisper_text: 'I want to book a room near the airport.',
+    user_text: 'I want to book a room near the airport for tomorrow night.',
+    is_edited: true,
+    duration: 5,
+    time_taken_by_user: 8,
+    segment_character_per_second: 5.5,
+    timestamp: new Date().toISOString()
+  },
+  {
+    _id: 'trans2',
+    user_id: 'USER_101',
+    recording_url: 'https://example.com/audio2.mp3',
+    whisper_text: 'My budget is 5000.',
+    user_text: 'My budget is around 5000 rupees.',
+    is_edited: true,
+    duration: 3,
+    time_taken_by_user: 2.1,
+    segment_character_per_second: 12.4,
+    timestamp: new Date().toISOString()
+  },
+  {
+    _id: 'trans3',
+    user_id: 'USER_102',
+    recording_url: 'https://example.com/audio3.mp3',
+    whisper_text: 'Hello how are you',
+    user_text: 'Hello, how are you today?',
+    is_edited: false,
+    duration: 4,
+    time_taken_by_user: 1.2,
+    segment_character_per_second: 18.5,
+    timestamp: new Date().toISOString()
+  }
+];
 const isDBConnected = () => mongoose.connection.readyState === 1;
 
 export const createTranscription = async (req, res) => {
