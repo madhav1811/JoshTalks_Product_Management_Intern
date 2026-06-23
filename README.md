@@ -1,4 +1,4 @@
-# JoshTalks Product Management Intern Tasks
+# Product Management Tasks
 
 This repository contains my solutions for the JoshTalks Product Management Intern application tasks. It features a complete **end-to-end MERN stack application** designed with a modern, high-fidelity UI to solve the provided product challenges.
 
